@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, paramiko, time, re, signal, os, getpass
+import sys, paramiko, time, re, signal, os, getpass, argparse
 from subprocess import Popen, PIPE
 from ethip import ethip
 
@@ -19,14 +19,20 @@ def host_exec(command, channel):
     return '\n'.join(result.split('\n')[1:-1]).strip()
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print '%s [username] [hostname] [subnets...]' % sys.argv[0]
+    parser_epilog = ("Example:\n\n"
+    "%s root 10.5.42.3 10.5.42.255 10.5.45.255\n\n"
+    "This command will establish an ssh session with the host 10.5.42.3 with the username root, then search for vmware VMs running on the host and search for their ip addresses via mac address in the subnets 10.5.42.x and 10.5.45.x. It then prompts to connect to one of the VMs. It attempts to start the VM if not running." % sys.argv[0])
+    parser = argparse.ArgumentParser(description="Remotely start vmware virtual machines and locate their ip address", epilog=parser_epilog, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("username", help="The username for logging into the vm host")
+    parser.add_argument("hostname", help="The hostname or ip address of the vm host")
+    parser.add_argument("subnets", nargs='+', help="The subnets to search for the VMs ip addresses")
+    args = parser.parse_args()
+
+    user = args.username
+    host = args.hostname
+    subnets = args.subnets
 
     signal.signal(signal.SIGINT, stop)
-
-    user = sys.argv[1]
-    host = sys.argv[2]
-    subnets = sys.argv[3:]
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(host, username=user, password=getpass.getpass('Password: '))
