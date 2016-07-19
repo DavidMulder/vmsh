@@ -26,11 +26,15 @@ if __name__ == "__main__":
     parser.add_argument("username", help="The username for logging into the vm host")
     parser.add_argument("hostname", help="The hostname or ip address of the vm host")
     parser.add_argument("subnets", nargs='+', help="The subnets to search for the VMs ip addresses")
+    parser.add_argument("--searchpath", help="Specify the search path for vmx files, default is the signed in user's homedir", action="append")
     args = parser.parse_args()
 
     user = args.username
     host = args.hostname
     subnets = args.subnets
+    searchpaths = ['$HOME']
+    if args.searchpath:
+        searchpaths = args.searchpath
 
     signal.signal(signal.SIGINT, stop)
     ssh = paramiko.SSHClient()
@@ -45,13 +49,14 @@ if __name__ == "__main__":
     prompt = 'PROMPT>>'
 
     ether = {}
-    vmxs = host_exec('find $HOME -name *.vmx', channel).split('\n')
-    for vmx in vmxs:
-        try:
-            mac = host_exec('cat "%s" | grep "ethernet0.generatedAddress ="' % vmx.strip(), channel).strip().split()[-1][1:-1]
-            ether[mac.lower()] = [vmx.strip().split('/')[-1].strip('.vmx'), None, vmx.strip()]
-        except:
-            continue
+    for path in searchpaths:
+        vmxs = host_exec('find %s -name *.vmx' % path, channel).split('\n')
+        for vmx in vmxs:
+            try:
+                mac = host_exec('cat "%s" | grep "ethernet0.generatedAddress ="' % vmx.strip(), channel).strip().split()[-1][1:-1]
+                ether[mac.lower()] = [vmx.strip().split('/')[-1].strip('.vmx'), None, vmx.strip()]
+            except:
+                continue
 
     ips = [(ether[key] + [key]) for key in ether.iterkeys()]
 
