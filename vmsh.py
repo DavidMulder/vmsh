@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys, paramiko, time, re, signal, os
+import sys, paramiko, time, re, signal, os, getpass
 from subprocess import Popen, PIPE
 from ethip import ethip
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     subnets = sys.argv[3:]
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(host, username=user)
+    ssh.connect(host, username=user, password=getpass.getpass('Password: '))
     channel = ssh.invoke_shell()
     time.sleep(.3)
     channel.recv(2048)
